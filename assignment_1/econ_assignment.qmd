@@ -1,0 +1,179 @@
+---
+title: "Quarto"
+author: "Feremusu R. Koroma"
+format: docx
+editor: visual
+---
+
+2(a)
+
+\$\$
+
+E(Y) = y_1 p_1 + \\dots + y_k p_k = \\sum\_{i=1}\^k y_i p_i
+
+\$\$
+
+2(b)
+
+\$\$
+
+\\sigma_Y = \\text{Var}(Y) = E\[(Y - \\mu_Y)\^2\] = \\sum\_{i=1}\^k (y_i - \\mu_Y)\^2 p_i
+
+\$\$
+
+2(c)
+
+\$\$
+
+\\hat{\\beta} =
+
+\\frac{\\sum\_{i=1}\^n (y - y_i)(x - x_i)}
+
+{\\sum\_{i=1}\^n (x - x_i)\^2}
+
+\$\$
+
+2(d)
+
+\$\$
+
+P(a \\leq Y \\leq b) = \\int_a\^b f_Y(y) \\, dy
+
+\$\$
+
+2(e)
+
+\$\$
+
+g(\\hat{x}) =
+
+\\frac{ \\frac{1}{n h} \\sum\_{i=1}\^n y_i K\\!\\left(\\frac{x_i - x}{h}\\right) }
+
+{ \\frac{1}{n h} \\sum\_{i=1}\^n K\\!\\left(\\frac{x_i - x}{h}\\right) }
+
+\$\$
+
+```{r}
+
+# clearing the environment
+rm(list = ls())
+
+# 3.1(a) set the sample size
+n <- 1000
+
+#3.1(b) generate two uniform random variables for u(0,1) with 500 observations each
+u1 <- runif(500,0,1)
+u2 <- runif(500,0,1)
+print(u1)
+print(u2)
+
+
+#3.1(c) generate two standard normal variables (z1 & z2)
+z1 <- sqrt(-2*log(u1))*cos(2*pi*u2)
+z2 <- sqrt(-2*log(u1))*sin(2*pi*u2)
+print(z1)
+print(z2)
+
+
+# 3.1(d) generate a vector z
+z <- c(z1,z2)
+print(z)
+
+
+# 3.1(e) generate two variables (mu & sigma)
+mu <- 5
+sigma <- 2
+
+# 3.1(f)  generate a variable x
+x <- mu+sigma*z
+print(x)
+
+
+# 3.1(g) cal mean(x)
+mean(x)
+sd(x)
+
+# 3.1(h) plot a histogram of x
+hist(x,
+     freq = FALSE,
+     ylab = "Density",
+     xlab = "$x$")
+
+curve(dnorm(x,mean=mu,sd=sigma),
+      col="red", lwd=2,add=TRUE)
+
+
+# 3.2 import data into R
+library(readr)
+hlthexp <- read_csv("hlthexp.csv")
+View(hlthexp)
+     
+# 3.2(a) Check for missing values in the column 'Hospital'
+hlthexp
+missing_value_Hospitals <- sum(is.na(hlthexp$Hospitals))
+
+
+# 3.2(b) create a new variable (Total Other Services) by summing these three other given variables
+Total_Other_Services <- hlthexp$`Other Professionals: Dental Services`+hlthexp$`Other Professionals: Vision Care Services`+
+hlthexp$`Other Professionals: Other Services`
+print(Total_Other_Services)
+hlthexp<-data.frame(hlthexp, Total_Other_Services)
+
+
+# 3.2(c) question seems incomplete
+
+# 3.2(d) adding prescription drugs to the data frame using append method
+Prescription_Drugs<-hlthexp$Prescribed.Drugs
+View(Prescription_Drugs)
+hlthexp<-append(hlthexp, Prescription_Drugs)
+View(hlthexp)
+
+# 3.2(e) determine the expenditure on hospitals in 1983
+hlthexp$Hospitals[hlthexp$Year==1983]
+
+# 3.2(f) listing the expenditures by year for 2012-2022
+hlthexp <- read_csv("hlthexp.csv")
+hlthexp[hlthexp$Year %in% 2012:2022, ]
+
+# 3.3 (a) Installing ggplot2 before loading the mpg data set
+##install.packages("ggplot2")
+mpg <-ggplot2::mpg
+mpg
+?subset
+subset(mpg,year==2008)
+View(mpg)
+?min
+min_val<-min(mpg$cty,na.rm=TRUE)
+print(min_val)
+max_val<-max(mpg$cty,na.rm=TRUE)
+print(max_val)
+
+# 3.3(b) Estimating the average miles per gallon within city limits for cars produced in 2008
+# Writing the mean function as sum of all x_i's over n
+n<-length(mpg$cty)
+print(n)
+average_city<-sum(mpg$cty)/n
+print(average_city)
+
+
+# 3.3(c) computing mean for mpg$cty using the mean() function
+mean_value<-mean(mpg$cty)
+print(mean_value)
+
+
+# 3.3(d) using the ifelse argument to extract the compact vechicles
+mpg_compact<-ifelse(mpg$class=="compact", 1,0)
+mpg <-data.frame(mpg, mpg_compact)
+print(mpg_compact)
+
+# 3.3(e) estimating the average miles per gallon withing city limits for compact cars
+average_city_compact<-mean(mpg$cty[mpg$class=="compact"],na.rm=TRUE)
+print(average_city_compact)
+
+# 3.3(f) creating a scatter plot with mpg(cty) following instructions in (i), (ii), (iii)
+scatter_plot<-plot(mpg$cty, mpg$hwy, xlab ='city MPG', ylab ='Highway MPG', main="City Versus Highway Fuel Efficiency (MPG)")
+
+# cross referencing the figure "Figure 1 shows the fuel efficiency for city driving versus highway driving"
+mtext("Figure 1 shows the fuel efficiency for
+city driving versus highway driving")
+```

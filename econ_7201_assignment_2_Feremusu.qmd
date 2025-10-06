@@ -1,0 +1,263 @@
+---
+title: |
+  | ECON 7201
+  | Applied Econometrics
+  Feremusu R. Koroma
+subtitle: "Assignment 2"
+format: 
+  pdf:
+    include-in-header: 
+      text: |
+        \usepackage{fancyhdr}
+        \fancypagestyle{style2}{
+        \fancyhf{}
+        \fancyhead[R]{Assignment 1}
+        \fancyhead[L]{ECON 3201}
+        \fancyfoot[C]{\thepage}
+        \renewcommand{\headrulewidth}{1pt}
+        }
+        \pagestyle{style2}
+execute: 
+  eval: true
+  echo: true
+---
+
+```{r}
+#| label: setup 
+#| include: FALSE
+
+
+library(ggplot2)
+
+# Default figure size for PDF output
+knitr::opts_chunk$set(fig.width = 6, fig.height = 4)
+
+set.seed(42)
+```
+
+\vspace{-1in}
+
+## Due Date
+
+**Sunday October 5, 2025** at 11:59 PM
+
+## Directions
+
+Answer all questions. Submit both a PDF and Quarto file to the nexus assignment portal.  
+
+# Git and GitHub
+
+1. 
+    (a) Create a new R project in your **econ_3201** directory called **assignment_2**.
+    (b) Download the assignment PDF and Quarto file the **assignment_2** folder.
+    (c) Commit and push the changes to your **econ_3201** repository on [GitHub.com](GitHub.com).
+
+
+# LaTeX
+
+Matrices are created in LaTeX using the `\begin{bmatrix}...\end{bmatrix}` command. To separate entries along the same row, use `&`. To end a line, use `\\`. To make vertical elipses ($\vdots$), use `\vdots`. Practice writing the following matrices and vectors in LaTeX. Write the following matrices in LaTeX.
+
+2.
+    (a) \quad $X' X = \begin{bmatrix}
+    n & \sum_{i=1}^{n} x_{1i} & \sum_{i=1}^{n} x_{2i} \\
+    \sum_{i=1}^{n} x_{1i} & \sum_{i=1}^{n} x_{1i}^2 & \sum_{i=1}^{n} x_{1i}x_{2i} \\
+    \sum_{i=1}^{n} x_{2i} & \sum_{i=1}^{n} x_{1i}x_{2i} & \sum_{i=1}^{n} x_{2i}^2
+\end{bmatrix}$
+
+
+    (b)  \quad $\Omega = \begin{bmatrix}
+    \sigma_1^2 & 0 & 0 & 0 \\
+    0 & \sigma_2^2 & 0 & 0 \\
+    0 & 0 & \sigma_3^2 & 0 \\
+    0 & 0 & 0 & \sigma_4^2
+\end{bmatrix}$
+
+
+# R
+
+3. In this question we compare standard errors based on (incorrect) asymptotic assumptions with those based on alternate (appropriate) estimator (White). Consider one sample drawn from the following data generating process
+(DGP) which we will simulate in `R`:
+
+```{r}
+set.seed(123)
+n <- 25
+x <- rnorm(n,mean=0.0,sd=1.0)
+beta0 <- 1
+beta1 <- 0
+## x is irrelevant in this model, the data generating process is as follows:
+dgp <- beta0 + beta1*x
+## The residual is heteroskedastic by construction
+e <- x^2*rnorm(n,mean=0.0,sd=1.0)
+y <- dgp + e
+```
+
+> (a) Compute the OLS estimator of $\beta_2$ and its standard error using the `lm()` command in `R` for the model $y_i=\beta_1+\beta_2 x_i+\epsilon_i$ based on the DGP given above.
+
+```{r}
+  # (a) Estimating the OLS model
+model1 <- lm(y ~ x)
+summary(model1)
+se_beta2_lm <- summary(model1)$coefficients["x", "Std. Error"]
+
+
+```
+
+
+> (b) Next, compute the standard error of $\hat\beta_2$ by computing $\hat\sigma^2(X'X)^{-1}$ in `R` using matrix commands, and verify that the two standard error estimates are identical.
+&nbsp;
+
+```{r}
+  # (b) standard error for beta2_hat
+X <- cbind(1, x)
+
+e <- model1$residuals
+sigmasq_hat <- as.numeric(t(e) %*% e) / (n - 2)
+
+
+var_cov <- sigmasq_hat * solve(t(X) %*% X) # variance-co variant matrix
+se_beta2_matrix <- sqrt(var_cov[2, 2]) # std error for beta2
+
+cat("Estimated sigma^2:", sigmasq_hat, "\n\n")
+
+print(var_cov)
+
+cat("\nStandard Error for β2 (slope):", se_beta2_matrix, "\n")
+
+se_beta1 <- sqrt(var_cov[1, 1])
+cat("Standard Error for β1 (intercept):", se_beta1, "\n")
+
+## verifying similarity
+round(se_beta2_lm,4) == round(se_beta2_matrix,4) # TRUE, implying that they are identical
+
+
+```
+
+> (c) Compute White's heteroskedasticity consistent covariance matrix estimator using matrices in R and report the White estimator of the standard error of $\hat\beta_2$. Compare this with that from 3 (a) above.
+
+```{r}
+# (c) computing white covariance matrix
+
+# ensure that the residuals are numeric
+e <- as.numeric(model1$residuals)
+
+# construct a diagonal matrix of the squared residuals
+Omega <- diag(e^2)
+
+# computing the matrix formula
+S <- t(X) %*% Omega %*% X
+
+# calculate the White covariance matrix
+white_var_cov <- solve(t(X) %*% X) %*% S %*% solve(t(X) %*% X)
+
+# extract the standard error
+white_se_beta1 <- sqrt(white_var_cov[1, 1])
+white_se_beta2 <- sqrt(white_var_cov[2, 2])
+
+# print results
+cat("\n--- (c) White (HC0) heteroskedasticity-consistent results ---\n")
+
+cat("White Variance–Covariance Matrix:\n")
+print(white_var_cov)
+
+cat("\nWhite SE for β1 (intercept):", white_se_beta1, "\n")
+cat("White SE for β2 (slope):", white_se_beta2, "\n")
+
+## comparing the white se with ordinary se
+sign(se_beta2_lm - white_se_beta2)  # return -1 implying that se_beta1_lm < white_se)
+
+
+```
+
+
+
+4. Let $\hat{\theta}$ be an estimator for the population parameter $\theta$. $\hat{\theta}$ is said to be unbiased if $E(\hat\theta)=\theta$. That is, if the mean of the sampling distribution of $\hat{\theta}$ is equal to the true population value. \
+\
+Consider the model $$y_i=\beta_0+\beta_1x_{1,i}-\beta_2x_{2,i}+\epsilon_i.$$ Lets provide empirical evidence that the ordinary least squares estimators $\hat\beta_0$, $\hat\beta_1$, and $\hat\beta_2$ are unbiased estimators of $\beta_0$, $\beta_1$, $\beta_2$, respectively, using R.  
+    (a) Set the seed to 1, i.e., `set.seed(1)`.
+    ```{r}
+     # (a) setting seed to 1
+set.seed(1)
+
+    ```
+    (b) Set the number of observations $n=100$
+    ```{r}
+    # (b) sample size
+n <- 100
+    ```
+    (c) Generate the following model $$y_i=2+3.5x_{1,i}-9.2x_{2,i}+\epsilon_i,$$ where $x_1\sim N(3,6)$, $x_2\sim N(2,4)$, and $\epsilon\sim N(0,100)$. To create a normally distributed variable, use the `rnorm(n, mean, sd)` command in R. 
+    ```{r}
+    # (c) generating the variable
+x1 <- rnorm(n, mean = 3, sd = sqrt(6))
+x2 <- rnorm(n, mean = 2, sd = sqrt(4))
+epsilon <- rnorm(n, mean = 0, sd = sqrt(100))
+y <- 2 + 3.5*x1 - 9.2*x2 + epsilon
+
+    ```
+    (d) Estimate the model coefficients using the `lm()` command. (Search `?lm()` in the console for more info).
+    ```{r}
+     # (d) model estimation
+model2 <- lm(y ~ x1 + x2)
+summary(model2)
+    ```
+    (e) Using a `for()` loop, replicate the model above $M=1000$ times and save the coefficient estimates from each iteration. 
+    ```{r}
+  
+  # (e) replication 
+set.seed(1)
+M <- 1000
+n <- 100
+
+beta0 <- 2
+beta1 <- 3.5
+beta2 <- -9.2
+
+coef_mat <- matrix(NA, nrow = M, ncol = 3)
+colnames(coef_mat) <- c("(Intercept)", "x1", "x2")
+
+for (i in 1:M) {
+  # generate new random data for each replication
+  x1 <- rnorm(n, mean = 3, sd = 6)
+  x2 <- rnorm(n, mean = 2, sd = 4)
+  eps <- rnorm(n, mean = 0, sd = 10)
+  y <- beta0 + beta1 * x1 + beta2 * x2 + eps
+  
+  model_rep <- lm(y ~ x1 + x2)
+  coef_mat[i, ] <- coef(model_rep)
+}
+
+# display results
+cat("\n------\n")
+print(colMeans(coef_mat))
+
+    ```
+    (f) Using `hist()`, plot the sampling distributions of the coefficient estimates, $\beta_1$ and $\beta_2$. 
+    ```{r}
+   # (f)
+hist(coef_mat[, "x1"],
+     main = "Sampling distribution of beta1", 
+     xlab = "beta1 estimate")
+
+
+
+hist(coef_mat[, "x2"],
+     main = "Sampling distribution of beta2", 
+     xlab = "beta2 estimate")
+
+    ```
+    (g) Add a vertical line to each figure at the mean of the respective variable. Search `?abline()` in your console.
+    ```{r}
+
+  #  (g)
+hist(coef_mat[, "x1"],
+     main = "Sampling distribution of beta1", 
+     xlab = "beta1 estimate")
+abline(v = colMeans(coef_mat)[2], col = "red")
+
+
+hist(coef_mat[, "x2"],
+     main = "Sampling distribution of beta2", 
+     xlab = "beta2 estimate")
+abline(v = colMeans(coef_mat)[3], col = "blue")
+
+    ```
+
